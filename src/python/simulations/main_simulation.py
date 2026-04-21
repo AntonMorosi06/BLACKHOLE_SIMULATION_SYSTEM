@@ -42,6 +42,9 @@ Active runtime systems:
 import math
 import random
 import os
+import json
+import time
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Tuple
 from collections import deque
@@ -65,6 +68,51 @@ from src.python.render.draw import draw_scene, invalidate_starfield_cache
 
 # Discrete runtime multipliers used to scale the effective simulation step.
 TIME_SCALES = [0.1, 0.25, 0.5, 1.0, 2.0, 4.0]
+
+
+# ═══════════════════════════════════════════════════════════
+#  EXTERNAL STATE EXPORT (STEP 2)
+# ═══════════════════════════════════════════════════════════
+
+OUTPUT_PATH = Path("data/output/state.json")
+
+
+def export_state(particles, absorbed, black_hole=None):
+    """
+    Export the current simulation state to a JSON file.
+
+    This file is intended to be consumed by the browser-based web layer,
+    allowing the web interface to visualize the live state of the Python
+    simulation without directly embedding the Python runtime.
+
+    Exported fields:
+    - active particle positions
+    - absorbed particle count
+    - black hole position and radii (if provided)
+    - timestamp
+    """
+    data = {
+        "particles": [
+            {"x": p.x, "y": p.y}
+            for p in particles if getattr(p, "alive", True)
+        ],
+        "absorbed": absorbed,
+        "timestamp": time.time(),
+    }
+
+    if black_hole is not None:
+        data["black_hole"] = {
+            "x": black_hole.x,
+            "y": black_hole.y,
+            "mass": black_hole.mass,
+            "event_horizon_radius": black_hole.event_horizon_radius,
+            "accretion_radius": black_hole.accretion_radius,
+        }
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -808,6 +856,11 @@ def main():
 
             alive_count = sum(1 for p in particles if p.alive)
             stats.tick(alive_count, dt * time_scale, absorbed_frame)
+
+            # ─── STATE EXPORT FOR WEB LAYER (STEP 2) ──────────────────────
+            # Export every 3 frames to avoid unnecessary file writes at full FPS.
+            if frame % 3 == 0:
+                export_state(particles, stats.absorbed_total, bh)
 
         # ─── VISUAL EFFECT UPDATES ────────────────────────────────────────
         for sw in shockwaves:
