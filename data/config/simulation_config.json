@@ -1,1 +1,31 @@
+{
+  "window_width": 1000,
+  "window_height": 700,
+  "fps": 60,
 
+  "particle_count": 600,
+  "respawn_threshold": 25,
+  "respawn_batch_size": 80,
+
+  "black_hole_x": 500,
+  "black_hole_y": 350,
+  "black_hole_mass": 9000.0,
+
+  "gravity_constant": 0.45,
+  "softening": 0.0001,
+
+  "event_horizon_radius": 20.0,
+  "accretion_radius": 120.0,
+
+  "max_speed": 12.0,
+  "damping": 0.999,
+  "dt": 1.0,
+
+  "trail_length": 30,
+  "ring_count": 6,
+
+  "show_debug_overlay": false,
+  "show_trails": true,
+  "show_starfield": true,
+  "starfield_count": 180
+}
