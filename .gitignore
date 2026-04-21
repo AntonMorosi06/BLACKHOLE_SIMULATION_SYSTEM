@@ -1,1 +1,36 @@
+# macOS
+.DS_Store
+__MACOSX/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Local outputs
+data/output/*
+!data/output/.gitkeep
+
+logs/*
+!logs/.gitkeep
+
+# Binary build outputs
+src/c/orbit_solver
+src/c/gravity_core
+src/c/schwarzschild
+
+# Archives
+*.zip
+*.tar
+*.gz
