@@ -1,1 +1,1283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BlackHole Simulation System</title>
+  <meta name="description" content="Sistema dimostrativo per la simulazione e la visualizzazione di un buco nero con particelle, orizzonte degli eventi e disco di accrescimento." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-0: #030508;
+      --bg-1: #0a0e18;
+      --bg-2: #111728;
+      --bg-3: #1a2035;
+      --text: #e8ecf8;
+      --text-dim: #8892b0;
+      --accent: #ff6a1a;
+      --accent-light: #ff9e5c;
+      --accent-glow: rgba(255,106,26,0.25);
+      --accent-2: #ffd699;
+      --border: rgba(255,255,255,0.06);
+      --border-accent: rgba(255,106,26,0.2);
+      --glass: rgba(255,255,255,0.03);
+      --glass-hover: rgba(255,255,255,0.06);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-lg: 24px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --font-display: 'Outfit', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
 
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+    body {
+      background: var(--bg-0);
+      color: var(--text);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: -30%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120vw;
+      height: 80vh;
+      background: radial-gradient(ellipse, rgba(255,106,26,0.06) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-shell { position: relative; z-index: 1; }
+
+    /* ═══ TOPBAR ═══ */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(16px, 3vw, 48px); height: 64px;
+      background: rgba(3,5,8,0.75);
+      backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar__brand { display: flex; align-items: center; gap: 14px; }
+
+    .brand-mark {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: conic-gradient(from 180deg, var(--accent), var(--accent-2), var(--accent));
+      box-shadow: 0 0 20px var(--accent-glow);
+      animation: brandSpin 8s linear infinite;
+    }
+
+    @keyframes brandSpin { to { transform: rotate(360deg); } }
+
+    .brand-copy strong {
+      display: block; font-family: var(--font-mono);
+      font-size: 13px; letter-spacing: 0.08em; color: var(--text);
+    }
+
+    .brand-copy span { font-size: 11px; color: var(--text-dim); letter-spacing: 0.02em; }
+
+    .topbar__status { display: flex; align-items: center; }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 100px;
+      background: rgba(255,106,26,0.08); border: 1px solid rgba(255,106,26,0.15);
+      font-family: var(--font-mono); font-size: 11px; color: var(--accent-light);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* ═══ HERO ═══ */
+    .hero { position: relative; padding: 120px clamp(16px, 3vw, 48px) 60px; overflow: hidden; }
+
+    .hero__background {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(255,106,26,0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(255,150,80,0.03) 0%, transparent 40%);
+      pointer-events: none;
+    }
+
+    .hero__content {
+      position: relative;
+      display: grid; grid-template-columns: 1.1fr 0.9fr;
+      gap: clamp(24px, 4vw, 64px); max-width: 1400px; margin: 0 auto; align-items: start;
+    }
+
+    .eyebrow {
+      display: inline-block; color: var(--accent); font-family: var(--font-mono);
+      font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 20px;
+      padding: 4px 12px; background: rgba(255,106,26,0.08);
+      border-radius: 4px; border: 1px solid rgba(255,106,26,0.12);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3.8vw, 3.8rem); font-weight: 800;
+      line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--text) 40%, var(--accent-2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .hero__lead {
+      color: var(--text-dim); font-size: clamp(0.95rem, 1.1vw, 1.1rem);
+      line-height: 1.75; max-width: 560px;
+    }
+
+    .hero__actions { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 24px; border-radius: var(--radius-sm);
+      font-family: var(--font-display); font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none; transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+      letter-spacing: 0.01em;
+    }
+
+    .btn--primary {
+      background: linear-gradient(135deg, var(--accent) 0%, #e85500 100%); color: #fff;
+      box-shadow: 0 4px 20px rgba(255,106,26,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    .btn--primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(255,106,26,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+
+    .btn--secondary {
+      background: var(--glass); color: var(--text);
+      border: 1px solid var(--border); backdrop-filter: blur(8px);
+    }
+
+    .btn--secondary:hover {
+      background: var(--glass-hover); border-color: var(--border-accent); transform: translateY(-2px);
+    }
+
+    .hero__meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
+
+    .hero-card {
+      padding: 18px; background: var(--glass);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      transition: all 0.3s ease;
+    }
+
+    .hero-card:hover { background: var(--glass-hover); border-color: var(--border-accent); transform: translateY(-2px); }
+
+    .hero-card__label {
+      display: block; font-family: var(--font-mono); font-size: 10px;
+      color: var(--accent); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 8px;
+    }
+
+    .hero-card strong { display: block; font-size: 15px; margin-bottom: 6px; color: var(--text); }
+    .hero-card p { font-size: 13px; color: var(--text-dim); line-height: 1.55; margin: 0; }
+
+    /* ═══ INFO PANEL ═══ */
+    .info-panel {
+      background: var(--glass); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: clamp(20px, 2.5vw, 32px);
+      backdrop-filter: blur(12px); position: sticky; top: 84px;
+    }
+
+    .info-panel__header { margin-bottom: 24px; }
+
+    .panel-kicker {
+      display: block; font-family: var(--font-mono); font-size: 10px;
+      color: var(--accent); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 8px;
+    }
+
+    .info-panel h2 { font-size: clamp(1.2rem, 1.6vw, 1.5rem); font-weight: 700; letter-spacing: -0.02em; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+
+    .stat-card {
+      padding: 16px; background: rgba(255,255,255,0.025);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      transition: border-color 0.3s;
+    }
+
+    .stat-card:hover { border-color: var(--border-accent); }
+
+    .stat-card__label {
+      display: block; font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
+    }
+
+    .stat-card strong {
+      display: block; font-size: 1.6rem; font-weight: 700;
+      color: var(--accent-2); font-family: var(--font-mono); line-height: 1.2;
+    }
+
+    .stat-card small { display: block; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+    .telemetry { margin-bottom: 20px; }
+
+    .telemetry__row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+
+    .telemetry__row:last-child { border-bottom: none; }
+    .telemetry__row span { color: var(--text-dim); font-size: 12px; }
+    .telemetry__row strong { font-family: var(--font-mono); color: var(--accent-light); font-size: 13px; }
+
+    .panel-note {
+      padding: 14px; background: rgba(255,106,26,0.04);
+      border-left: 2px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 12px; color: var(--text-dim); line-height: 1.65;
+    }
+
+    /* ═══ MAIN CONTENT ═══ */
+    .main-content { padding: 0 clamp(16px, 3vw, 48px) 60px; }
+
+    .section { max-width: 1400px; margin: 0 auto 64px; }
+
+    .section__head {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      gap: 40px; margin-bottom: 32px; flex-wrap: wrap;
+    }
+
+    .section__eyebrow {
+      font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+      text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 10px;
+    }
+
+    .section__head h2 {
+      font-size: clamp(1.5rem, 2.5vw, 2.2rem); font-weight: 700; letter-spacing: -0.02em;
+    }
+
+    .section__copy { max-width: 440px; font-size: 14px; color: var(--text-dim); line-height: 1.7; }
+
+    /* Simulation Frame */
+    .simulation-frame {
+      background: var(--glass); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+    }
+
+    .simulation-frame__toolbar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 20px; border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.015);
+    }
+
+    .toolbar-chip {
+      display: inline-flex; align-items: center; padding: 4px 12px;
+      border-radius: 100px; font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-dim); background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    .toolbar-chip:first-child {
+      color: var(--accent-light); background: rgba(255,106,26,0.06);
+      border-color: rgba(255,106,26,0.12);
+    }
+
+    .simulation-frame__canvas-wrap { padding: 4px; }
+
+    canvas {
+      display: block; width: 100%; height: auto; border-radius: var(--radius);
+      background: radial-gradient(circle at center, #0d1020 0%, #060810 55%, #020305 100%);
+    }
+
+    /* Analysis Grid */
+    .analysis-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    .analysis-card {
+      padding: 24px; background: var(--glass);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      transition: all 0.3s ease;
+    }
+
+    .analysis-card:hover { background: var(--glass-hover); border-color: var(--border-accent); transform: translateY(-3px); }
+    .analysis-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+    .analysis-card p { font-size: 13.5px; color: var(--text-dim); line-height: 1.7; margin: 0; }
+
+    /* Parameter Grid */
+    .parameter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+    .parameter-card {
+      padding: 22px; background: var(--glass);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      transition: all 0.3s ease; position: relative; overflow: hidden;
+    }
+
+    .parameter-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+
+    .parameter-card:hover::before { opacity: 1; }
+    .parameter-card:hover { background: var(--glass-hover); border-color: var(--border-accent); }
+
+    .parameter-card__label {
+      display: block; font-family: var(--font-mono); font-size: 10px;
+      color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px;
+    }
+
+    .parameter-card strong {
+      display: block; font-family: var(--font-mono);
+      font-size: 14px; color: var(--accent-2); margin-bottom: 8px;
+    }
+
+    .parameter-card p { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin: 0; }
+
+    /* Controls */
+    .controls-section { max-width: 1400px; margin: 0 auto 64px; }
+
+    .controls-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    .control-card {
+      padding: 20px; background: var(--glass);
+      border: 1px solid var(--border); border-radius: var(--radius);
+    }
+
+    .control-card label {
+      display: block; font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;
+    }
+
+    .control-card .control-value {
+      display: block; font-family: var(--font-mono);
+      font-size: 22px; font-weight: 700; color: var(--accent-2); margin-bottom: 12px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px; border-radius: 2px;
+      background: var(--bg-3); outline: none; cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
+      border: 2px solid var(--bg-0); cursor: pointer;
+    }
+
+    /* ═══ FOOTER ═══ */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 40px clamp(16px, 3vw, 48px); background: rgba(0,0,0,0.3);
+    }
+
+    .footer__inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; justify-content: space-between; align-items: flex-end;
+      gap: 32px; flex-wrap: wrap;
+    }
+
+    .footer__inner > div:first-child strong {
+      display: block; font-family: var(--font-mono);
+      font-size: 13px; letter-spacing: 0.06em; margin-bottom: 10px;
+    }
+
+    .footer__inner > div:first-child p { max-width: 480px; font-size: 13px; color: var(--text-dim); line-height: 1.65; }
+
+    .footer__meta {
+      display: flex; flex-direction: column; align-items: flex-end;
+      gap: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    }
+
+    /* ═══ ANIMATIONS ═══ */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero__left { animation: fadeUp 0.8s ease-out both; }
+    .hero__right { animation: fadeUp 0.8s 0.15s ease-out both; }
+    .hero-card:nth-child(1) { animation: fadeUp 0.6s 0.3s ease-out both; }
+    .hero-card:nth-child(2) { animation: fadeUp 0.6s 0.4s ease-out both; }
+    .hero-card:nth-child(3) { animation: fadeUp 0.6s 0.5s ease-out both; }
+
+    .analysis-card, .parameter-card { opacity: 0; animation: fadeUp 0.5s ease-out both; }
+    .analysis-card:nth-child(1) { animation-delay: 0.1s; }
+    .analysis-card:nth-child(2) { animation-delay: 0.15s; }
+    .analysis-card:nth-child(3) { animation-delay: 0.2s; }
+    .analysis-card:nth-child(4) { animation-delay: 0.25s; }
+    .analysis-card:nth-child(5) { animation-delay: 0.3s; }
+    .analysis-card:nth-child(6) { animation-delay: 0.35s; }
+    .parameter-card:nth-child(1) { animation-delay: 0.1s; }
+    .parameter-card:nth-child(2) { animation-delay: 0.15s; }
+    .parameter-card:nth-child(3) { animation-delay: 0.2s; }
+    .parameter-card:nth-child(4) { animation-delay: 0.25s; }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 1100px) {
+      .hero__content { grid-template-columns: 1fr; }
+      .info-panel { position: static; }
+      .parameter-grid { grid-template-columns: repeat(2, 1fr); }
+      .controls-grid { grid-template-columns: repeat(2, 1fr); }
+      .section--lifecycle .parameter-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .hero__meta { grid-template-columns: 1fr; }
+      .analysis-grid { grid-template-columns: 1fr; }
+      .parameter-grid { grid-template-columns: 1fr; }
+      .controls-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .section__head { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .brand-copy span { display: none; }
+      .footer__inner { flex-direction: column; align-items: flex-start; }
+      .footer__meta { align-items: flex-start; }
+    }
+
+    @media (max-width: 480px) {
+      .topbar { padding: 0 12px; }
+      .hero { padding: 88px 12px 32px; }
+      .main-content { padding: 0 12px 40px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <nav class="topbar">
+      <div class="topbar__brand">
+        <span class="brand-mark"></span>
+        <div class="brand-copy">
+          <strong>BLACKHOLE SIMULATION</strong>
+          <span>Visual Simulation &middot; Physics Concept &middot; Experimental Interface</span>
+        </div>
+      </div>
+      <div class="topbar__status">
+        <span class="status-pill">
+          <span class="status-dot"></span>
+          active session
+        </span>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="hero__background"></div>
+      <section class="hero__content">
+        <div class="hero__left">
+          <p class="eyebrow">SIMULAZIONE GRAVITAZIONALE MODULARE</p>
+          <h1>Studio visivo e computazionale di un buco nero come sistema centrale di attrazione</h1>
+          <p class="hero__lead">
+            Questa interfaccia rappresenta una base dimostrativa del progetto
+            BLACKHOLE SIMULATION SYSTEM. Il modello unisce una simulazione
+            semplificata di particelle soggette ad attrazione centrale,
+            la presenza di un orizzonte degli eventi e una struttura grafica
+            ispirata al disco di accrescimento e alla deformazione simbolica
+            dello spazio circostante.
+          </p>
+          <div class="hero__actions">
+            <button id="spawnBtn" class="btn btn--primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              Rigenera particelle
+            </button>
+            <button id="toggleMotionBtn" class="btn btn--secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+              Avvia / Ferma
+            </button>
+          </div>
+          <div class="hero__meta">
+            <article class="hero-card">
+              <span class="hero-card__label">Layer fisico</span>
+              <strong>Forza centrale</strong>
+              <p>Attrazione radiale, velocit&agrave;, assorbimento e dinamica semplificata.</p>
+            </article>
+            <article class="hero-card">
+              <span class="hero-card__label">Layer matematico</span>
+              <strong>Modello vettoriale</strong>
+              <p>Distanza, direzione normalizzata, accelerazione e stabilizzazione numerica.</p>
+            </article>
+            <article class="hero-card">
+              <span class="hero-card__label">Layer concettuale</span>
+              <strong>Spazio e struttura</strong>
+              <p>Base per sviluppi futuri su curvatura, orbite e rappresentazioni multidimensionali.</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="hero__right">
+          <div class="info-panel">
+            <div class="info-panel__header">
+              <span class="panel-kicker">SYSTEM STATUS</span>
+              <h2>Dashboard sintetica</h2>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <span class="stat-card__label">Particelle attive</span>
+                <strong id="particleCount">0</strong>
+                <small>nodi dinamici nel campo</small>
+              </div>
+              <div class="stat-card">
+                <span class="stat-card__label">Assorbite</span>
+                <strong id="absorbedCount">0</strong>
+                <small>oltre l'orizzonte eventi</small>
+              </div>
+              <div class="stat-card">
+                <span class="stat-card__label">Stato</span>
+                <strong id="simStatus">running</strong>
+                <small>motore visuale attivo</small>
+              </div>
+              <div class="stat-card">
+                <span class="stat-card__label">Intensit&agrave;</span>
+                <strong id="massDisplay">8000</strong>
+                <small>massa simbolica centrale</small>
+              </div>
+            </div>
+            <div class="telemetry">
+              <div class="telemetry__row">
+                <span>Event horizon radius</span>
+                <strong id="horizonDisplay">32</strong>
+              </div>
+              <div class="telemetry__row">
+                <span>Accretion radius</span>
+                <strong id="accretionDisplay">120</strong>
+              </div>
+              <div class="telemetry__row">
+                <span>Gravity constant</span>
+                <strong id="gravityDisplay">0.42</strong>
+              </div>
+            </div>
+            <div class="panel-note">
+              La simulazione browser non pretende rigore relativistico completo.
+              Rappresenta un ambiente dimostrativo utile per esplorare dinamiche
+              visive e comportamento emergente delle particelle.
+            </div>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <main class="main-content">
+      <section class="controls-section">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">LIVE CONTROLS</p>
+            <h2>Controlli in tempo reale</h2>
+          </div>
+          <p class="section__copy">
+            Modifica i parametri della simulazione e osserva i cambiamenti
+            istantaneamente nel canvas sottostante.
+          </p>
+        </div>
+        <div class="controls-grid">
+          <div class="control-card">
+            <label>Massa del buco nero</label>
+            <span class="control-value" id="massVal">8000</span>
+            <input type="range" id="massSlider" min="1000" max="20000" value="8000" step="500">
+          </div>
+          <div class="control-card">
+            <label>Costante gravitazionale</label>
+            <span class="control-value" id="gravityVal">0.42</span>
+            <input type="range" id="gravitySlider" min="5" max="100" value="42" step="1">
+          </div>
+          <div class="control-card">
+            <label>Orizzonte eventi</label>
+            <span class="control-value" id="horizonVal">32</span>
+            <input type="range" id="horizonSlider" min="10" max="80" value="32" step="1">
+          </div>
+          <div class="control-card">
+            <label>Numero particelle</label>
+            <span class="control-value" id="particleVal">280</span>
+            <input type="range" id="particleSlider" min="50" max="800" value="280" step="10">
+          </div>
+          <div class="control-card">
+            <label>Damping</label>
+            <span class="control-value" id="dampingVal">0.999</span>
+            <input type="range" id="dampingSlider" min="980" max="1000" value="999" step="1">
+          </div>
+          <div class="control-card">
+            <label>Max Speed</label>
+            <span class="control-value" id="maxSpeedVal">14</span>
+            <input type="range" id="maxSpeedSlider" min="4" max="30" value="14" step="1">
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--simulation">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">VISUAL ENGINE</p>
+            <h2>Canvas di simulazione interattiva</h2>
+          </div>
+          <p class="section__copy">
+            Il campo visivo rappresenta il centro gravitazionale, il bordo
+            dell'orizzonte degli eventi e il moto delle particelle nel piano bidimensionale.
+          </p>
+        </div>
+        <div class="simulation-frame">
+          <div class="simulation-frame__toolbar">
+            <span class="toolbar-chip">canvas active</span>
+            <span class="toolbar-chip">2D dynamic field</span>
+            <span class="toolbar-chip">particle absorption enabled</span>
+            <span class="toolbar-chip">LMB attract · RMB repel</span>
+          </div>
+          <div class="simulation-frame__canvas-wrap">
+            <canvas id="blackholeCanvas" width="1400" height="700"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── PHYSICS: WHAT IS A BLACK HOLE ─── -->
+      <section class="section section--physics">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">PHYSICS FOUNDATION</p>
+            <h2>Che cos'è un buco nero?</h2>
+          </div>
+          <p class="section__copy">
+            Un buco nero è una regione dello spaziotempo in cui la gravità
+            è così intensa che nulla — nemmeno la luce — può sfuggire
+            una volta oltrepassato l'orizzonte degli eventi.
+          </p>
+        </div>
+        <div class="analysis-grid">
+          <article class="analysis-card">
+            <h3>Singolarità</h3>
+            <p>Al centro del buco nero la densità diventa teoricamente infinita. Tutta la massa è concentrata in un punto adimensionale chiamato singolarità gravitazionale, dove le leggi fisiche classiche cessano di valere.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Orizzonte degli eventi</h3>
+            <p>Il confine oltre il quale la velocità di fuga supera c (la velocità della luce). Una volta oltrepassato, non esiste traiettoria che possa riportare un oggetto all'esterno. Non è una barriera fisica, ma un limite causale.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Raggio di Schwarzschild</h3>
+            <p>Il raggio dell'orizzonte degli eventi per un buco nero non rotante: r<sub>s</sub> = 2GM/c². Per il Sole (se compresso), sarebbe circa 3 km. Per un buco nero di 10 masse solari, circa 30 km.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Sfera dei fotoni</h3>
+            <p>A 1.5 × r<sub>s</sub> i fotoni possono orbitare il buco nero su traiettorie circolari instabili. Questa regione crea l'anello luminoso visibile nelle immagini reali (come quella di M87*).</p>
+          </article>
+          <article class="analysis-card">
+            <h3>ISCO</h3>
+            <p>L'Innermost Stable Circular Orbit (3 × r<sub>s</sub> per un buco nero di Schwarzschild) è l'orbita stabile più vicina. Sotto questa distanza, la materia spirala inevitabilmente verso l'orizzonte.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Disco di accrescimento</h3>
+            <p>La materia in caduta verso il buco nero forma un disco rotante ad alta temperatura. L'attrito tra gli strati genera radiazione termica che rende il disco una delle sorgenti più luminose dell'universo.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─── FORMULAS + CALCULATOR ─── -->
+      <section class="section section--formulas">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">MATHEMATICAL MODEL</p>
+            <h2>Formule fondamentali</h2>
+          </div>
+          <p class="section__copy">
+            Le equazioni che governano il comportamento gravitazionale
+            del buco nero e delle particelle nel sistema.
+          </p>
+        </div>
+        <div class="analysis-grid">
+          <article class="analysis-card">
+            <h3>Forza gravitazionale (simulazione)</h3>
+            <p>F = G · M / (r² + ε)</p>
+            <p style="color:var(--text-dim);font-size:12px;margin-top:8px;">Modello semplificato con softening ε per stabilità numerica. La forza tende a infinito senza ε, causando instabilità nella simulazione.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Raggio di Schwarzschild</h3>
+            <p>r<sub>s</sub> = 2GM / c²</p>
+            <p style="color:var(--text-dim);font-size:12px;margin-top:8px;">Proporzionale alla massa. Per M = 10 M☉: r<sub>s</sub> ≈ 29.5 km. Per M = 4×10⁶ M☉ (Sgr A*): r<sub>s</sub> ≈ 12×10⁶ km.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Velocità orbitale</h3>
+            <p>v = √(GM / r)</p>
+            <p style="color:var(--text-dim);font-size:12px;margin-top:8px;">Velocità necessaria per un'orbita circolare stabile a distanza r. Decresce con la radice quadrata della distanza.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Velocità di fuga</h3>
+            <p>v<sub>esc</sub> = √(2GM / r)</p>
+            <p style="color:var(--text-dim);font-size:12px;margin-top:8px;">All'orizzonte degli eventi, v<sub>esc</sub> = c. Nessun oggetto con massa può raggiungere c, quindi nulla può sfuggire.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Dilatazione temporale</h3>
+            <p>τ = t · √(1 − r<sub>s</sub>/r)</p>
+            <p style="color:var(--text-dim);font-size:12px;margin-top:8px;">Il tempo rallenta vicino al buco nero. A r = r<sub>s</sub> il tempo si ferma per un osservatore esterno. Effetto previsto dalla relatività generale.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Energia totale</h3>
+            <p>E = ½mv² − GMm/r</p>
+            <p style="color:var(--text-dim);font-size:12px;margin-top:8px;">Se E < 0 la particella è legata gravitazionalmente. Se E ≥ 0 può sfuggire. La simulazione monitora questa quantità per ogni particella.</p>
+          </article>
+        </div>
+
+        <!-- Interactive Schwarzschild Calculator -->
+        <div style="margin-top:32px;background:var(--glass);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;">
+          <h3 style="margin-bottom:16px;color:var(--accent);">Calcolatore Schwarzschild interattivo</h3>
+          <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px;">Inserisci la massa in masse solari per calcolare i parametri del buco nero corrispondente.</p>
+          <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+            <div>
+              <label style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-transform:uppercase;">Massa (M☉)</label>
+              <input type="range" id="massCalc" min="1" max="100000" value="10" step="1" style="width:200px;display:block;margin-top:8px;">
+              <span id="massCalcVal" style="font-family:var(--font-mono);font-size:18px;color:var(--accent-2);">10</span>
+            </div>
+            <div id="calcResults" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-family:var(--font-mono);font-size:13px;color:var(--text-dim);">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── STELLAR LIFECYCLE ─── -->
+      <section class="section section--lifecycle">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">STELLAR EVOLUTION</p>
+            <h2>Dal nucleo stellare al buco nero</h2>
+          </div>
+          <p class="section__copy">
+            Un buco nero stellare nasce dalla morte di una stella massiccia.
+            Il processo attraversa fasi distinte che portano al collasso gravitazionale.
+          </p>
+        </div>
+        <div class="parameter-grid" style="grid-template-columns: repeat(5, 1fr);">
+          <article class="parameter-card">
+            <span class="parameter-card__label">Fase 1</span>
+            <strong style="color:#60a0ff;">Sequenza principale</strong>
+            <p>La stella brucia idrogeno in elio tramite fusione nucleare. Durata: milioni-miliardi di anni. L'equilibrio idrostatico mantiene la stella stabile.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label">Fase 2</span>
+            <strong style="color:#80ddff;">Gigante rossa</strong>
+            <p>Esaurito l'idrogeno, il nucleo si contrae e gli strati esterni si espandono. Inizia la fusione dell'elio e di elementi più pesanti.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label">Fase 3</span>
+            <strong style="color:#ffcc60;">Nucleosintesi</strong>
+            <p>Per stelle > 8M☉, la fusione prosegue fino al ferro. Oltre il ferro la fusione non è più esotermica: il nucleo perde la sua sorgente di energia.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label">Fase 4</span>
+            <strong style="color:#ff8040;">Supernova</strong>
+            <p>Il nucleo collassa in millisecondi. L'onda d'urto espelle gli strati esterni in una delle esplosioni più energetiche dell'universo: 10⁴⁶ joule.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label">Fase 5</span>
+            <strong style="color:#ff4060;">Buco nero</strong>
+            <p>Se il residuo supera ~3M☉ (limite di Tolman–Oppenheimer–Volkoff), nessuna forza può impedire il collasso. Si forma il buco nero.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─── CLASSIFICATION ─── -->
+      <section class="section section--classification">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">TAXONOMY</p>
+            <h2>Classificazione dei buchi neri</h2>
+          </div>
+        </div>
+        <div class="parameter-grid">
+          <article class="parameter-card">
+            <span class="parameter-card__label" style="color:#80ddff;">Primordiale</span>
+            <strong>M < M☉</strong>
+            <p>Teorici. Formati nel Big Bang per fluttuazioni di densità. Raggio di Schwarzschild microscopico. Mai osservati direttamente.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label" style="color:#60ff90;">Stellare</span>
+            <strong>3 – 100 M☉</strong>
+            <p>Residui di stelle massicce. r<sub>s</sub> da 9 a 300 km. Rilevati tramite onde gravitazionali (LIGO/Virgo) e raggi X in sistemi binari.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label" style="color:#ffaa40;">Intermedio</span>
+            <strong>10² – 10⁵ M☉</strong>
+            <p>Candidati trovati nei centri di ammassi globulari e in sorgenti di raggi X ultraluminose. Origine ancora dibattuta.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label" style="color:#ff6080;">Supermassivo</span>
+            <strong>10⁶ – 10¹⁰ M☉</strong>
+            <p>Al centro della maggior parte delle galassie. Sgr A* (Via Lattea): 4×10⁶ M☉. M87*: 6.5×10⁹ M☉. Primo fotografato nel 2019.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─── MODEL OVERVIEW (existing) ─── -->
+      <section class="section section--analysis">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">MODEL OVERVIEW</p>
+            <h2>Interpretazione del sistema</h2>
+          </div>
+          <p class="section__copy">
+            Non soltanto una demo grafica ma una prima interfaccia espositiva
+            del progetto, pensata per legare codice, modello matematico
+            e lettura concettuale del fenomeno.
+          </p>
+        </div>
+        <div class="analysis-grid">
+          <article class="analysis-card">
+            <h3>Centro gravitazionale</h3>
+            <p>Il buco nero viene trattato come attrattore centrale con massa simbolica. Ogni particella viene aggiornata a ogni frame in base alla distanza dal centro e alla forza risultante.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Orizzonte degli eventi</h3>
+            <p>Una soglia interna definisce il limite di assorbimento. Quando una particella attraversa tale raggio, il sistema la considera persa dal campo osservabile.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Disco di accrescimento</h3>
+            <p>La fascia esterna colorata rappresenta una regione visuale ispirata al disco di accrescimento, utile per rendere leggibile la scala del sistema.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Motore numerico</h3>
+            <p>Il comportamento &egrave; governato da un modello semplificato basato su distanza, direzione normalizzata, accelerazione centrale e softening.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Ruolo del frontend</h3>
+            <p>Il frontend web agisce come strato espositivo del progetto. La sua funzione &egrave; offrire una piattaforma immediata e presentabile per la dinamica in tempo reale.</p>
+          </article>
+          <article class="analysis-card">
+            <h3>Evoluzioni future</h3>
+            <p>Le prossime estensioni includono sincronizzazione con dati Python, report automatici, visualizzazioni pseudo-3D e interfaccia teorica sulle dimensioni superiori.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section section--controls">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">PARAMETRIC REFERENCE</p>
+            <h2>Parametri del modello</h2>
+          </div>
+          <p class="section__copy">
+            Riferimento tecnico per i parametri osservabili che governano
+            il comportamento della simulazione.
+          </p>
+        </div>
+        <div class="parameter-grid">
+          <article class="parameter-card">
+            <span class="parameter-card__label">Massa del centro</span>
+            <strong>blackHoleMass</strong>
+            <p>Controlla l'intensit&agrave; generale del campo attrattivo.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label">Costante gravitazionale</span>
+            <strong>gravity</strong>
+            <p>Influenza la rapidit&agrave; con cui il sistema modifica la velocit&agrave; delle particelle.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label">Orizzonte degli eventi</span>
+            <strong>eventHorizonRadius</strong>
+            <p>Definisce la soglia interna di assorbimento irreversibile nel modello.</p>
+          </article>
+          <article class="parameter-card">
+            <span class="parameter-card__label">Raggio di accrescimento</span>
+            <strong>accretionRadius</strong>
+            <p>Stabilisce la scala visiva del disco e dell'area esterna di influenza simbolica.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <div>
+          <strong>BLACKHOLE SIMULATION SYSTEM</strong>
+          <p>Struttura sperimentale per simulazione, visualizzazione e sviluppo modulare di un modello dinamico ispirato al comportamento di un buco nero.</p>
+        </div>
+        <div class="footer__meta">
+          <span>Python &middot; C &middot; HTML &middot; CSS &middot; JavaScript</span>
+          <span>Experimental Simulation Workspace</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    /* ═══ SPEED COLOR GRADIENT (10 livelli: blu → magenta) ═══ */
+    const SPEED_COLORS = [
+      [100,140,255],[120,180,255],[160,220,255],[200,255,220],[255,255,160],
+      [255,200,100],[255,150,60],[255,100,40],[255,60,60],[255,40,120]
+    ];
+    function speedToColor(speed, maxSpeed) {
+      const t = Math.min(speed / Math.max(maxSpeed, 0.01), 1);
+      const idx = t * (SPEED_COLORS.length - 1);
+      const i = Math.floor(idx), f = idx - i;
+      if (i >= SPEED_COLORS.length - 1) return SPEED_COLORS[SPEED_COLORS.length - 1];
+      const a = SPEED_COLORS[i], b = SPEED_COLORS[i + 1];
+      return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
+    }
+
+    const SIM_CONFIG = {
+      width: 1400, height: 700, particleCount: 280,
+      gravity: 0.45, blackHoleMass: 10000,
+      eventHorizonRadius: 36, accretionRadius: 140,
+      softening: 25, damping: 0.999, maxSpeed: 14, running: true
+    };
+
+    class Particle {
+      constructor(x, y, vx, vy) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+        this.alive = true; this.trail = [];
+        this.size = 1.2 + Math.random() * 1.8;
+        this.opacity = 0.6 + Math.random() * 0.4;
+      }
+      speed() { return Math.sqrt(this.vx * this.vx + this.vy * this.vy); }
+    }
+
+    class BlackHoleSimulation {
+      constructor(canvas, config) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+        this.config = config;
+        this.centerX = canvas.width / 2;
+        this.centerY = canvas.height / 2;
+        this.particles = [];
+        this.absorbed = 0;
+        this.time = 0;
+        this.mouseDown = false;
+        this.mouseX = 0; this.mouseY = 0;
+        this.mouseMode = "attract";
+        this._setupMouse();
+        this.spawnParticles();
+      }
+
+      _setupMouse() {
+        this.canvas.addEventListener("mousedown", e => {
+          this.mouseDown = true;
+          this.mouseMode = e.button === 2 ? "repel" : "attract";
+          const r = this.canvas.getBoundingClientRect();
+          const sx = this.canvas.width / r.width;
+          const sy = this.canvas.height / r.height;
+          this.mouseX = (e.clientX - r.left) * sx;
+          this.mouseY = (e.clientY - r.top) * sy;
+        });
+        this.canvas.addEventListener("mousemove", e => {
+          const r = this.canvas.getBoundingClientRect();
+          this.mouseX = (e.clientX - r.left) * (this.canvas.width / r.width);
+          this.mouseY = (e.clientY - r.top) * (this.canvas.height / r.height);
+        });
+        this.canvas.addEventListener("mouseup", () => { this.mouseDown = false; });
+        this.canvas.addEventListener("contextmenu", e => e.preventDefault());
+      }
+
+      spawnParticles() {
+        this.particles = [];
+        this.absorbed = 0;
+        for (let i = 0; i < this.config.particleCount; i++) {
+          const side = Math.floor(Math.random() * 4);
+          let x, y;
+          if (side === 0) { x = Math.random() * this.canvas.width; y = -40; }
+          else if (side === 1) { x = Math.random() * this.canvas.width; y = this.canvas.height + 40; }
+          else if (side === 2) { x = -40; y = Math.random() * this.canvas.height; }
+          else { x = this.canvas.width + 40; y = Math.random() * this.canvas.height; }
+          let vx = (Math.random() - 0.5) * 2.8, vy = (Math.random() - 0.5) * 2.8;
+          // orbital bias
+          const ddx = this.centerX - x, ddy = this.centerY - y;
+          const dd = Math.sqrt(ddx*ddx + ddy*ddy) + 1e-6;
+          const str = 0.3 + Math.random() * 1.2;
+          vx += (-ddy/dd)*str; vy += (ddx/dd)*str;
+          this.particles.push(new Particle(x, y, vx, vy));
+        }
+      }
+
+      update() {
+        if (!this.config.running) return;
+        this.time += 0.016;
+        const cfg = this.config;
+
+        // Mouse force
+        if (this.mouseDown) {
+          for (const p of this.particles) {
+            if (!p.alive) continue;
+            const dx = this.mouseX - p.x, dy = this.mouseY - p.y;
+            const d2 = dx*dx + dy*dy;
+            if (d2 > 160000) continue;
+            const d = Math.sqrt(d2) || 1;
+            let f = 500 / (d2 + 100);
+            if (this.mouseMode === "repel") f = -f;
+            p.vx += (dx/d)*f; p.vy += (dy/d)*f;
+          }
+        }
+
+        for (const p of this.particles) {
+          if (!p.alive) continue;
+          const dx = this.centerX - p.x, dy = this.centerY - p.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist <= cfg.eventHorizonRadius) { p.alive = false; this.absorbed++; continue; }
+          const force = cfg.gravity * cfg.blackHoleMass / ((dist*dist) + cfg.softening);
+          const inv = 1 / (dist || 1);
+          p.vx += dx * inv * force;
+          p.vy += dy * inv * force;
+          p.vx *= cfg.damping; p.vy *= cfg.damping;
+          // clamp speed
+          const spd = p.speed();
+          if (spd > cfg.maxSpeed) { const s = cfg.maxSpeed/spd; p.vx *= s; p.vy *= s; }
+          p.x += p.vx; p.y += p.vy;
+          p.trail.push({x: p.x, y: p.y});
+          if (p.trail.length > 28) p.trail.shift();
+        }
+      }
+
+      drawBackground() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const grad = ctx.createRadialGradient(this.centerX, this.centerY, 10, this.centerX, this.centerY, this.canvas.width * 0.6);
+        grad.addColorStop(0, "rgba(255,100,30,0.06)");
+        grad.addColorStop(0.12, "rgba(255,60,20,0.03)");
+        grad.addColorStop(0.35, "rgba(8,10,22,0.3)");
+        grad.addColorStop(1, "rgba(2,3,6,1)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // Lensing rings (viola/blu)
+        for (let i = 0; i < 6; i++) {
+          const r = this.config.accretionRadius * (1.2 + i * 0.35) + Math.sin(this.time*0.5 + i) * 2;
+          ctx.beginPath();
+          ctx.strokeStyle = i % 2 === 0 ? "rgba(180,160,255,"+(0.035 - i*0.005)+")" : "rgba(100,140,220,"+(0.025 - i*0.004)+")";
+          ctx.lineWidth = 1;
+          ctx.arc(this.centerX, this.centerY, r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      drawBlackHole() {
+        const ctx = this.ctx, cx = this.centerX, cy = this.centerY;
+        const ehr = this.config.eventHorizonRadius, ar = this.config.accretionRadius;
+
+        // Multi-band accretion disk
+        const bands = [[1.0,200,160,255,28],[0.88,255,200,100,32],[0.75,255,160,60,36],[0.62,255,100,30,28],[0.50,255,70,20,20]];
+        for (const [f, r, g, b, a] of bands) {
+          ctx.beginPath(); ctx.strokeStyle = "rgba("+r+","+g+","+b+","+a/255+")";
+          ctx.lineWidth = 3 + (1-f)*6;
+          ctx.arc(cx, cy, ar*f, 0, Math.PI*2); ctx.stroke();
+        }
+
+        // Disc glow
+        const discGrad = ctx.createRadialGradient(cx, cy, ehr, cx, cy, ar * 1.15);
+        discGrad.addColorStop(0, "rgba(255,120,40,0.14)");
+        discGrad.addColorStop(0.5, "rgba(255,80,20,0.06)");
+        discGrad.addColorStop(1, "rgba(255,60,10,0)");
+        ctx.fillStyle = discGrad; ctx.beginPath();
+        ctx.arc(cx, cy, ar * 1.15, 0, Math.PI * 2); ctx.fill();
+
+        // Photon ring
+        ctx.beginPath(); ctx.strokeStyle = "rgba(255,200,120,0.5)"; ctx.lineWidth = 2;
+        ctx.shadowColor = "rgba(255,180,80,0.4)"; ctx.shadowBlur = 15;
+        ctx.arc(cx, cy, ehr * 1.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.strokeStyle = "rgba(255,220,160,0.25)"; ctx.lineWidth = 1;
+        ctx.arc(cx, cy, ehr * 1.55, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Accretion border
+        ctx.beginPath(); ctx.strokeStyle = "rgba(255,170,80,0.6)"; ctx.lineWidth = 1.5;
+        ctx.arc(cx, cy, ar, 0, Math.PI * 2); ctx.stroke();
+
+        // Event horizon
+        const bhGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, ehr);
+        bhGrad.addColorStop(0, "#000000"); bhGrad.addColorStop(0.85, "#010103"); bhGrad.addColorStop(1, "rgba(6,4,12,0.97)");
+        ctx.fillStyle = bhGrad; ctx.beginPath();
+        ctx.arc(cx, cy, ehr, 0, Math.PI * 2); ctx.fill();
+        // Inner core
+        ctx.fillStyle = "#000001"; ctx.beginPath();
+        ctx.arc(cx, cy, ehr * 0.85, 0, Math.PI * 2); ctx.fill();
+      }
+
+      drawParticles() {
+        const ctx = this.ctx, maxSpd = this.config.maxSpeed;
+        for (const p of this.particles) {
+          if (!p.alive) continue;
+          const spd = p.speed();
+          const sc = speedToColor(spd, maxSpd);
+          const dx = this.centerX - p.x, dy = this.centerY - p.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          const ehr = this.config.eventHorizonRadius, ar = this.config.accretionRadius;
+          const inAccretion = dist <= ar && dist > ehr;
+
+          // Trail with speed color gradient
+          if (p.trail.length > 1) {
+            for (let i = 1; i < p.trail.length; i++) {
+              const prog = i / p.trail.length;
+              const alpha = prog * 0.35 * p.opacity;
+              ctx.beginPath();
+              if (inAccretion) {
+                const t = 1 - (dist - ehr) / Math.max(1, ar - ehr);
+                ctx.strokeStyle = "rgba(255," + Math.round(160-80*t) + "," + Math.round(80-40*t) + "," + alpha + ")";
+              } else {
+                ctx.strokeStyle = "rgba(" + Math.round(sc[0]) + "," + Math.round(sc[1]) + "," + Math.round(sc[2]) + "," + alpha + ")";
+              }
+              ctx.lineWidth = p.size * prog * 0.6;
+              ctx.moveTo(p.trail[i-1].x, p.trail[i-1].y);
+              ctx.lineTo(p.trail[i].x, p.trail[i].y);
+              ctx.stroke();
+            }
+          }
+
+          // Glow
+          const closeness = Math.max(0, 1 - dist / (ar * 2));
+          const glowSize = p.size + closeness * 4;
+          if (closeness > 0.2) {
+            ctx.beginPath();
+            ctx.fillStyle = "rgba(" + Math.round(sc[0]) + "," + Math.round(sc[1]) + "," + Math.round(sc[2]) + "," + (closeness * 0.12) + ")";
+            ctx.arc(p.x, p.y, glowSize * 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Dot
+          ctx.beginPath();
+          if (dist <= ehr) {
+            ctx.fillStyle = "rgba(255,60,30," + p.opacity + ")";
+          } else if (inAccretion) {
+            const t = 1 - (dist - ehr) / Math.max(1, ar - ehr);
+            const mc = [
+              sc[0] * (1-t*0.4) + 255*t*0.4,
+              sc[1] * (1-t*0.5) + 160*t*0.5,
+              sc[2] * (1-t*0.6) + 60*t*0.6
+            ];
+            ctx.fillStyle = "rgba(" + Math.round(mc[0]) + "," + Math.round(mc[1]) + "," + Math.round(mc[2]) + "," + p.opacity + ")";
+          } else {
+            ctx.fillStyle = "rgba(" + Math.round(sc[0]) + "," + Math.round(sc[1]) + "," + Math.round(sc[2]) + "," + p.opacity + ")";
+          }
+          ctx.arc(p.x, p.y, glowSize, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      drawMouseIndicator() {
+        if (!this.mouseDown) return;
+        const ctx = this.ctx;
+        const color = this.mouseMode === "attract" ? "rgba(100,200,255," : "rgba(255,100,100,";
+        ctx.beginPath(); ctx.strokeStyle = color + "0.4)"; ctx.lineWidth = 2;
+        ctx.arc(this.mouseX, this.mouseY, 30, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.strokeStyle = color + "0.15)"; ctx.lineWidth = 1;
+        ctx.arc(this.mouseX, this.mouseY, 55, 0, Math.PI*2); ctx.stroke();
+      }
+
+      render() {
+        this.drawBackground();
+        this.drawBlackHole();
+        this.drawParticles();
+        this.drawMouseIndicator();
+      }
+      getAliveCount() { return this.particles.filter(p => p.alive).length; }
+    }
+
+    const canvas = document.getElementById("blackholeCanvas");
+    const simulation = new BlackHoleSimulation(canvas, SIM_CONFIG);
+
+    const particleCountEl = document.getElementById("particleCount");
+    const absorbedCountEl = document.getElementById("absorbedCount");
+    const simStatusEl = document.getElementById("simStatus");
+    const massDisplayEl = document.getElementById("massDisplay");
+    const horizonDisplayEl = document.getElementById("horizonDisplay");
+    const accretionDisplayEl = document.getElementById("accretionDisplay");
+    const gravityDisplayEl = document.getElementById("gravityDisplay");
+
+    function updateStats() {
+      particleCountEl.textContent = simulation.getAliveCount();
+      absorbedCountEl.textContent = simulation.absorbed;
+      simStatusEl.textContent = SIM_CONFIG.running ? "running" : "paused";
+      massDisplayEl.textContent = SIM_CONFIG.blackHoleMass;
+      horizonDisplayEl.textContent = SIM_CONFIG.eventHorizonRadius;
+      accretionDisplayEl.textContent = SIM_CONFIG.accretionRadius;
+      gravityDisplayEl.textContent = SIM_CONFIG.gravity.toFixed(2);
+    }
+
+    function loop() {
+      simulation.update();
+      simulation.render();
+      updateStats();
+      requestAnimationFrame(loop);
+    }
+
+    document.getElementById("spawnBtn").addEventListener("click", function() { simulation.spawnParticles(); });
+    document.getElementById("toggleMotionBtn").addEventListener("click", function() { SIM_CONFIG.running = !SIM_CONFIG.running; });
+
+    document.getElementById("massSlider").addEventListener("input", function(e) {
+      SIM_CONFIG.blackHoleMass = +e.target.value;
+      document.getElementById("massVal").textContent = e.target.value;
+    });
+    document.getElementById("gravitySlider").addEventListener("input", function(e) {
+      SIM_CONFIG.gravity = +e.target.value / 100;
+      document.getElementById("gravityVal").textContent = (e.target.value / 100).toFixed(2);
+    });
+    document.getElementById("horizonSlider").addEventListener("input", function(e) {
+      SIM_CONFIG.eventHorizonRadius = +e.target.value;
+      document.getElementById("horizonVal").textContent = e.target.value;
+    });
+    document.getElementById("particleSlider").addEventListener("input", function(e) {
+      SIM_CONFIG.particleCount = +e.target.value;
+      document.getElementById("particleVal").textContent = e.target.value;
+    });
+
+    // Schwarzschild Calculator
+    const massCalcSlider = document.getElementById("massCalc");
+    const massCalcVal = document.getElementById("massCalcVal");
+    const calcResults = document.getElementById("calcResults");
+    const G = 6.6743e-11, C = 299792458, M_SUN = 1.989e30;
+
+    function updateCalc() {
+      const m_solar = +massCalcSlider.value;
+      massCalcVal.textContent = m_solar >= 1000 ? (m_solar/1000).toFixed(1) + "k" : m_solar;
+      const M = m_solar * M_SUN;
+      const rs = 2*G*M/(C*C);
+      const rph = 1.5 * rs;
+      const risco = 3 * rs;
+
+      function fmt(v) {
+        if (v > 1e9) return (v/1e9).toFixed(2) + " Gm";
+        if (v > 1e6) return (v/1e6).toFixed(2) + " Mm";
+        if (v > 1e3) return (v/1e3).toFixed(2) + " km";
+        return v.toFixed(2) + " m";
+      }
+
+      calcResults.innerHTML =
+        "<span>Schwarzschild r<sub>s</sub>:</span><strong style='color:#ff9e5c'>" + fmt(rs) + "</strong>" +
+        "<span>Photon sphere:</span><strong style='color:#ffd699'>" + fmt(rph) + "</strong>" +
+        "<span>ISCO:</span><strong style='color:#80ddff'>" + fmt(risco) + "</strong>" +
+        "<span>Massa:</span><strong style='color:#e8ecf8'>" + M.toExponential(3) + " kg</strong>";
+    }
+    massCalcSlider.addEventListener("input", updateCalc);
+    updateCalc();
+
+    document.getElementById("dampingSlider").addEventListener("input", function(e) {
+      SIM_CONFIG.damping = +e.target.value / 1000;
+      document.getElementById("dampingVal").textContent = (e.target.value / 1000).toFixed(3);
+    });
+    document.getElementById("maxSpeedSlider").addEventListener("input", function(e) {
+      SIM_CONFIG.maxSpeed = +e.target.value;
+      document.getElementById("maxSpeedVal").textContent = e.target.value;
+    });
+
+    // Auto-respawn when particles run low
+    setInterval(function() {
+      if (!SIM_CONFIG.running) return;
+      const alive = simulation.getAliveCount();
+      if (alive < 30) {
+        const old = SIM_CONFIG.particleCount;
+        SIM_CONFIG.particleCount = 100;
+        simulation.spawnParticles();
+        SIM_CONFIG.particleCount = old;
+      }
+    }, 2000);
+
+    loop();
+  </script>
+</body>
+</html>
