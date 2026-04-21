@@ -1,185 +1,218 @@
 # BlackHole Simulation System
 
-## Introduction
+## Overview
 
-BlackHole Simulation System is a modular computational project designed to simulate and visualize simplified black hole related dynamics.
+BlackHole Simulation System is a modular project designed to simulate, visualize, and analyze the behavior of particles under the influence of a central massive attractor.
 
-The system integrates multiple layers — numerical computation, real-time simulation, low-level modules, and visual representation — into a single structured environment. The objective is not to reproduce a complete astrophysical model, but to build a coherent framework where physical intuition, simulation logic, and software architecture evolve together.
+The system is built as a multi-layer architecture combining:
 
-This repository should be understood as a controlled simulation system rather than a scientific engine. Its strength lies in the clarity of its structure and the consistency between its components.
+* a Python-based simulation engine
+* a lightweight C numerical layer
+* a browser-based interactive visualization
+* structured documentation and validation tests
 
----
-
-## System Purpose
-
-The project is built around a clear set of objectives.
-
-The first objective is to simulate particle behavior under the influence of a central mass, using simplified gravitational dynamics that remain numerically stable and visually interpretable.
-
-The second objective is to provide a real-time simulation environment where motion, interaction, and system evolution can be observed directly.
-
-The third objective is to maintain a modular architecture where different computational layers can evolve independently without breaking the system as a whole.
-
-The fourth objective is to connect simulation, documentation, and visualization into a single repository that can be inspected, extended, and understood as a complete system.
+The goal of the project is not to replicate a full relativistic model, but to create a clear, controllable, and extensible environment for exploring central-force systems and their emergent behavior.
 
 ---
 
-## Architectural Structure
+## System Architecture
 
-The repository is organized into independent but connected modules.
+The repository is structured as a set of coordinated layers, each with a specific responsibility.
 
-| Module        | Description                                             |
-| ------------- | ------------------------------------------------------- |
-| `src/python/` | Main simulation engine and execution logic              |
-| `src/c/`      | Low-level numerical modules for isolated computations   |
-| `web/`        | Browser-based visualization and demonstrative interface |
-| `docs/`       | Conceptual, structural, and mathematical documentation  |
-| `tests/`      | Validation of selected components                       |
-| `scripts/`    | Environment setup and build automation                  |
-| `data/`       | Configuration files and generated outputs               |
-| `assets/`     | Static resources                                        |
-| `logs/`       | Runtime logs                                            |
+| Layer   | Role                                    |
+| ------- | --------------------------------------- |
+| Python  | Core simulation runtime                 |
+| C       | Low-level numerical utilities           |
+| Web     | Interactive visualization layer         |
+| Docs    | Conceptual and structural documentation |
+| Tests   | Targeted validation of key components   |
+| Scripts | Environment setup and utilities         |
 
-This structure allows each part of the system to remain isolated while still contributing to a unified workflow.
+This separation allows the system to remain modular, readable, and extensible.
 
 ---
 
-## Simulation Model
+## Key Features
 
-The simulation is based on a simplified central-force model.
+The system currently supports:
 
-Particles are influenced by a central mass representing a black hole. The force applied is derived from a reduced gravitational formulation, adapted to ensure numerical stability and real-time performance.
+* particle-based simulation under central attraction
+* configurable black hole mass and gravitational strength
+* event horizon absorption logic
+* accretion radius visualization
+* real-time particle motion and trail rendering
+* browser-based interactive controls
+* modular simulation structure
+* targeted validation tests
 
-The system does not implement full relativistic physics. Instead, it uses controlled approximations that allow consistent behavior within a discrete-time simulation loop.
-
-A softening factor is introduced to prevent instability when particles approach the center. This avoids singularities and ensures that the system remains stable under all conditions.
-
-The model is intentionally minimal, but structured in a way that allows progressive extension.
-
----
-
-## Python Layer
-
-The Python layer is the core of the system.
-
-It includes:
-
-* constants and configuration management
-* vector and utility functions
-* particle and black hole models
-* gravity engine logic
-* simulation loop execution
-* rendering
-* report generation tools
-
-This layer is responsible for running the simulation and producing the observable behavior of the system.
+These features are implemented with a focus on clarity, stability, and incremental development.
 
 ---
 
-## C Layer
+## Repository Structure
 
-The C layer provides a lower-level computational perspective.
+The project is organized as follows:
 
-Its purpose is to isolate selected numerical routines and offer a more explicit implementation of certain physical computations. It is not required for running the main simulation, but acts as a complementary layer for experimentation and future optimization.
-
----
-
-## Web Layer
-
-The web module provides a visual and explanatory interface.
-
-It is not a replacement for the simulation engine. Instead, it serves as a way to present the system in a more accessible format, allowing inspection of concepts, structure, and behavior through a browser.
-
----
-
-## Running the System
-
-### Install dependencies
-
-```bash
-pip install -r requirements.txt
+```
+blackhole-simulation-system/
+│
+├── src/
+│   ├── python/           # Main simulation engine
+│   └── c/                # Numerical support modules
+│
+├── web/                  # Browser-based visualization
+│   ├── index.html
+│   ├── css/
+│   └── js/
+│
+├── data/
+│   └── config/           # Simulation configuration
+│
+├── tests/                # Validation scripts
+│
+├── scripts/              # Setup and build utilities
+│
+├── docs/                 # Project documentation
+│
+└── run_all.py            # Unified launcher
 ```
 
-### Run the launcher
+Each directory is intentionally scoped to a specific part of the system.
 
-```bash
+---
+
+## Running the Project
+
+### Python Simulation
+
+Run the main simulation directly:
+
+```bash id="r1"
+python src/python/simulations/main_simulation.py
+```
+
+---
+
+### Web Interface
+
+Open the browser-based simulation:
+
+```bash id="r2"
+open web/index.html
+```
+
+Or run a local server:
+
+```bash id="r3"
+python -m http.server 8000
+```
+
+---
+
+### Launcher
+
+Use the unified launcher to access core features:
+
+```bash id="r4"
 python run_all.py
 ```
 
-### Run the simulation directly
+---
 
-```bash
-python -m src.python.simulations.main_simulation
+### Tests
+
+Run validation scripts:
+
+```bash id="r5"
+python tests/test_math.py
 ```
 
-### Open the web interface
-
-Open the file:
-
-```bash
-web/index.html
-```
-
-### Build C modules
-
-```bash
-bash scripts/build_c.sh
+```bash id="r6"
+python tests/test_orbit.py
 ```
 
 ---
 
-## Documentation
+## Design Principles
 
-The `docs/` directory contains the written structure of the system.
+The system is built around a small number of core principles.
 
-| File                       | Description                   |
-| -------------------------- | ----------------------------- |
-| `00_project_overview.md`   | General structure and purpose |
-| `01_mathematical_model.md` | Mathematical foundation       |
-| `02_future_extensions.md`  | Future development directions |
+### Modularity
 
-These documents provide the conceptual layer that complements the code.
+Each layer is separated and independently understandable.
+This allows the system to evolve without breaking internal structure.
 
----
+### Clarity
 
-## Current Scope
+The project prioritizes readability over unnecessary complexity.
+Every component is designed to be inspectable and understandable.
 
-The repository currently provides:
+### Incremental Development
 
-* a modular simulation framework
-* a controllable particle system
-* a central gravitational model
-* a real-time visualization layer
-* low-level numerical modules
-* structured documentation
-* a unified launcher system
+The system is intentionally built in stages, allowing controlled expansion over time.
 
-The system is complete as a prototype, but intentionally open for extension.
+### Demonstrative Value
+
+The web layer and visual outputs are designed to make the system observable and explainable.
 
 ---
 
-## Future Direction
+## Relationship Between Layers
 
-The system is designed to evolve in a controlled way.
+The different layers of the system are connected conceptually but remain technically independent.
 
-Future work may include:
+* The Python layer provides the main simulation logic
+* The C layer supports numerical computation where needed
+* The web layer offers a simplified interactive representation
+* The tests validate selected behaviors
+* The documentation explains structure and intent
 
-* more accurate orbital dynamics
-* enhanced visualization techniques
-* stronger numerical methods
-* deeper integration between Python and C modules
-* additional simulation scenarios
-
-All future development should preserve the modular structure of the repository.
+This separation ensures that each part of the system can evolve without introducing unnecessary coupling.
 
 ---
 
-## Author
+## Limitations
 
-Anton Morosi
+The current system has known and intentional limitations:
+
+* simplified physics model
+* no full relativistic simulation
+* partial test coverage
+* no real-time synchronization between Python and web layers
+
+These constraints reflect the current development stage and the chosen design approach.
 
 ---
 
-## License
+## Future Directions
 
-MIT License
+Potential future developments include:
+
+* deeper integration between Python and web layers
+* improved numerical models
+* extended visualization capabilities
+* richer control systems and dashboards
+* additional validation tests
+
+All future extensions are expected to preserve the current modular structure.
+
+---
+
+## Why This Project Matters
+
+This project is designed as a structured environment for exploring:
+
+* central-force systems
+* emergent particle behavior
+* simulation architecture design
+* multi-layer system organization
+
+It serves both as a technical foundation and as a demonstrative system that can be extended over time.
+
+---
+
+## Summary
+
+BlackHole Simulation System is a modular, multi-layer simulation environment that combines computation, visualization, and structure into a coherent and extensible project.
+
+The repository is designed to remain readable, adaptable, and progressively expandable.
